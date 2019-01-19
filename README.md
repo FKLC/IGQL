@@ -28,4 +28,13 @@ for media_list in user.iterate_more_timeline_media():
     for media in media_list:
         print(media.image_url)
 ```
+
+## Installation
+Library is avaible on PyPi so just run
+
+```
+pip install igql
+```
+
+
 # To learn more check [wiki page](https://github.com/FKLC/IGQL/wiki).
