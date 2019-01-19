@@ -1,0 +1,1 @@
+from .igql import InstagramGraphQL
