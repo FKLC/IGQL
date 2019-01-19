@@ -24,5 +24,5 @@ setup(
         "Operating System :: OS Independent",
     ],
     packages=['igql'],
-    install_requires=['anyapi']
+    install_requires=['anyapi==1.0.7']
 )
