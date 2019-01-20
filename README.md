@@ -10,6 +10,7 @@ Unofficial Instagram GraphQL API to collet data without authentication.
 * Get all likes
 * Get specific user posts
 * With sessionid supplied you can get data from private accounts
+* There is a lot of cool data returned by GraphQL. For example `accessibility_caption` which you can train your image classifier through it
 
 ###### NOTE: This is basically a API to collet data not for uploading or interacting with media. If you want more advanced IG library you should check [LevPasha's Instagram-API-python](https://github.com/LevPasha/Instagram-API-python) package.
 
