@@ -60,7 +60,7 @@ class Media:
                 separators=(',', ':'))
             }
 
-            self.last_response = self.igql.gql_api.query___get(
+            self.last_response = self.igql.gql_api.query.GET(
                 params=params).json()['data']['shortcode_media']
 
             self._comments_has_next_page = self.last_response[
@@ -88,7 +88,7 @@ class Media:
             if self._liked_by_end_cursor:
                 params['after'] = self._liked_by_end_cursor
 
-            self.last_response = self.igql.gql_api.query___get(
+            self.last_response = self.igql.gql_api.query.GET(
                 params=params).json()['data']['shortcode_media']
 
             self._liked_by_has_next_page = self.last_response['edge_liked_by'][

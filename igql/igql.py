@@ -24,24 +24,32 @@ class InstagramGraphQL:
     ' (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36'
     _FORBIDDEN_USERNAMES = ['graphql', 'explore']
 
-    def __init__(self, rhx_gis='', sessionid=''):
+    def __init__(self, rhx_gis='', sessionid='', proxies=[]):
         self.last_response = {}
+        proxy_configration = {
+            'default': None,
+            'proxies': proxies,
+            'paths': {
+                '/query': 100
+            }
+        }
         self.gql_api = AnyAPI(
             self._BASE_URL,
             default_headers={
                 'user-agent': self._USER_AGENT,
                 'cookie': f'sessionid={sessionid}',
-            })
+            },
+            proxy_configration=proxy_configration)
         if not rhx_gis:
             rhx_gis = self._get_shared_data()['rhx_gis']
         self.rhx_gis = rhx_gis
 
-        self.gql_api.filter_headers.append(self._set_instagram_gis)
-        self.gql_api.filter_response.append(self._raise_rate_limit_exceed)
-        self.gql_api.filter_response.append(self._raise_media_not_found)
-        self.gql_api.filter_response.append(self._raise_user_not_found)
-        self.gql_api.filter_response.append(self._raise_hashtag_not_found)
-        self.gql_api.filter_response.append(self._raise_location_not_found)
+        self.gql_api._filter_headers.append(self._set_instagram_gis)
+        self.gql_api._filter_response.append(self._raise_rate_limit_exceed)
+        self.gql_api._filter_response.append(self._raise_media_not_found)
+        self.gql_api._filter_response.append(self._raise_user_not_found)
+        self.gql_api._filter_response.append(self._raise_hashtag_not_found)
+        self.gql_api._filter_response.append(self._raise_location_not_found)
 
     def get_media(self, shortcode):
         params = {
@@ -56,7 +64,7 @@ class InstagramGraphQL:
             separators=(',', ':'))
         }
 
-        self.last_response = self.gql_api.query___get(
+        self.last_response = self.gql_api.query.GET(
             params=params).json()['data']['shortcode_media']
 
         return Media(self.last_response, self)
@@ -81,14 +89,14 @@ class InstagramGraphQL:
         return Location(self.last_response, self)
 
     def search(self, query):
-        return self.gql_api.___get(
+        return self.gql_api.GET(
             url='https://www.instagram.com/web/search/topsearch/',
             params={
                 'query': query
             }).json()
 
     def _get_shared_data(self, path='instagram'):
-        self.last_response = self.gql_api.___get(url=f'{self._IG_URL}/{path}')
+        self.last_response = self.gql_api.GET(url=f'{self._IG_URL}/{path}')
         self.last_response = self.last_response.text.split(
             'window._sharedData = ')[1]
         self.last_response = self.last_response.split(';</script>')[0]
@@ -112,7 +120,8 @@ class InstagramGraphQL:
         return response
 
     def _raise_media_not_found(self, response, path, **kwargs):
-        if response.status_code == 200 and path == 'query' and not response.json()['data'].get(
+        if response.status_code == 200 and path == 'query' and not response.json(
+        )['data'].get(
                 'shortcode_media', True):
             raise NotFound('Media not found!')
 

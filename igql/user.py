@@ -44,7 +44,7 @@ class User:
                 separators=(',', ':'))
             }
 
-            self.last_response = self.igql.gql_api.query___get(
+            self.last_response = self.igql.gql_api.query.GET(
                 params=params).json()['data']['user']
 
             self._timeline_has_next_page = self.last_response[
