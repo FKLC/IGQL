@@ -1,5 +1,6 @@
 from hashlib import md5
 from anyapi import AnyAPI
+from requests.exceptions import ChunkedEncodingError
 import json
 
 from .media import Media
@@ -39,7 +40,8 @@ class InstagramGraphQL:
                 'user-agent': self._USER_AGENT,
                 'cookie': f'sessionid={sessionid}',
             },
-            proxy_configration=proxy_configration)
+            proxy_configration=proxy_configration,
+            scoped_call=self._raise_rate_limit_connreset)
         if not rhx_gis:
             rhx_gis = self._get_shared_data()['rhx_gis']
         self.rhx_gis = rhx_gis
@@ -147,3 +149,9 @@ class InstagramGraphQL:
             raise NotFound('Location not found!')
 
         return response
+
+    def _raise_rate_limit_connreset(self, request):
+        try:
+            return request()
+        except ChunkedEncodingError:
+            raise RateLimitExceed('Rate limit exceed!')
