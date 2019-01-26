@@ -123,8 +123,7 @@ class InstagramGraphQL:
 
     def _raise_media_not_found(self, response, path, **kwargs):
         if response.status_code == 200 and path == 'query' and not response.json(
-        )['data'].get(
-                'shortcode_media', True):
+        )['data'].get('shortcode_media'):
             raise NotFound('Media not found!')
 
         return response
