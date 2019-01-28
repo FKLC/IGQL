@@ -121,9 +121,9 @@ class InstagramGraphQL:
 
         return response
 
-    def _raise_media_not_found(self, response, path, **kwargs):
-        print(response.status_code, path, response.json()['data'])
-        if response.status_code == 200 and path == '/query' and not response.json(
+    def _raise_media_not_found(self, response, params,  **kwargs):
+        if response.status_code == 200 and params.get(
+        'query_hash') == self._QUERY_HASHES['get_media'] and not response.json(
         )['data'].get('shortcode_media'):
             raise NotFound('Media not found!')
 
@@ -131,21 +131,19 @@ class InstagramGraphQL:
 
     def _raise_user_not_found(self, response, url, path, **kwargs):
         if response.status_code == 404 and path.split(
-                    '/')[0] not in self._FORBIDDEN_USERNAMES:
+                    '/')[1] not in self._FORBIDDEN_USERNAMES:
             raise NotFound('User not found!')
 
         return response
 
-    def _raise_hashtag_not_found(self, response, url, path, **kwargs):
-        if response.status_code == 404 and url.startswith(
-                f'{self._IG_URL}/explore/tags/'):
+    def _raise_hashtag_not_found(self, response, path, **kwargs):
+        if response.status_code == 404 and path.startswith('/explore/tags/'):
             raise NotFound('Hashtag not found!')
 
         return response
 
-    def _raise_location_not_found(self, response, url, path, **kwargs):
-        if response.status_code == 404 and url.startswith(
-                f'{self._IG_URL}/explore/locations/'):
+    def _raise_location_not_found(self, response, path, **kwargs):
+        if response.status_code == 404 and path.startswith('/explore/locations/'):
             raise NotFound('Location not found!')
 
         return response
