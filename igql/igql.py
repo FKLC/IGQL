@@ -71,24 +71,24 @@ class InstagramGraphQL:
 
         return Media(self.last_response, self)
 
-    def get_user(self, username, fetch_comments=False):
+    def get_user(self, username, fetch_data=False):
         self.last_response = self._get_shared_data(
             username)['entry_data']['ProfilePage'][0]['graphql']['user']
 
-        return User(self.last_response, self, fetch_comments=fetch_comments)
+        return User(self.last_response, self, fetch_data=fetch_data)
 
-    def get_hashtag(self, name, fetch_comments=False):
+    def get_hashtag(self, name, fetch_data=False):
         self.last_response = self._get_shared_data(f'explore/tags/{name}/')[
             'entry_data']['TagPage'][0]['graphql']['hashtag']
 
-        return Hashtag(self.last_response, self)
+        return Hashtag(self.last_response, self, fetch_data=False)
 
-    def get_location(self, location_id):
+    def get_location(self, location_id, fetch_data=False):
         self.last_response = self._get_shared_data(
             f'explore/locations/{location_id}/'
         )['entry_data']['LocationsPage'][0]['graphql']['location']
 
-        return Location(self.last_response, self)
+        return Location(self.last_response, self, fetch_data=False)
 
     def search(self, query):
         return self.gql_api.GET(

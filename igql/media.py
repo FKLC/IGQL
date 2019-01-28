@@ -2,7 +2,7 @@ import json
 
 
 class Media:
-    def __init__(self, data, igql, fetch_comments=False):
+    def __init__(self, data, igql, fetch_data=False):
         self.igql = igql
         self.data = data
         self.last_response = data
@@ -10,17 +10,17 @@ class Media:
         self.shortcode = data['shortcode']
         self.display_url = data['display_url']
         self.like_count = data['edge_media_preview_like']['count']
-        try:
-            self.comments = data['edge_media_to_comment']['edges']
+        if fetch_data:
+            self._fetch_data()
+        else:
+            try:
+                self.comments = data['edge_media_to_comment']['edges']
 
-            self._comments_has_next_page = data['edge_media_to_comment'][
-                'page_info']['has_next_page']
-            self._comments_end_cursor = data['edge_media_to_comment'][
-                'page_info']['end_cursor']
-        except:
-            if fetch_comments:
-                self._fetch_comments()
-            else:
+                self._comments_has_next_page = self.data['edge_media_to_comment'][
+                    'page_info']['has_next_page']
+                self._comments_end_cursor = self.data['edge_media_to_comment'][
+                    'page_info']['end_cursor']
+            except:
                 self.comments = None
 
                 self._comments_has_next_page = False
@@ -28,21 +28,13 @@ class Media:
         self._liked_by_has_next_page = True
         self._liked_by_end_cursor = None
 
-    def _fetch_comments(self):
+    def _fetch_data(self):
         media = self.igql.get_media(self.shortcode)
-        self.comments = media.comments
-        self.data['edge_media_to_comment']['page_info'] = {
-            'has_next_page': media._comments_has_next_page,
-            'end_cursor': media._comments_end_cursor
-        }
-        self._comments_has_next_page = media._comments_has_next_page
-        self._comments_end_cursor = media._comments_end_cursor
-
-        return media.comments
+        self.__dict__.update(media.__dict__)
 
     def iterate_more_comments(self, reset=False):
         if not self.comments:
-            yield self._fetch_comments()
+            yield self._fetch_data()
         if reset:
             self._comments_has_next_page = self.data[
                 'edge_media_to_comment']['page_info']['has_next_page']

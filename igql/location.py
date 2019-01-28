@@ -4,7 +4,7 @@ from .media import Media
 
 
 class Location:
-    def __init__(self, data, igql, fetch_comments=False):
+    def __init__(self, data, igql, fetch_data=False):
         self.igql = igql
         self.data = data
         self.last_response = data
@@ -14,25 +14,25 @@ class Location:
         self.profile_pic = data['profile_pic_url']
         self.top_posts = [
             Media(
-                media_data['node'], self.igql, fetch_comments=fetch_comments)
+                media_data['node'], self.igql, fetch_data=fetch_data)
             for media_data in data['edge_location_to_top_posts']['edges']
         ]
         self.recent_media = [
             Media(
-                media_data['node'], self.igql, fetch_comments=fetch_comments)
+                media_data['node'], self.igql, fetch_data=fetch_data)
             for media_data in data['edge_location_to_media']['edges']
         ]
 
-        self._recent_media_has_next_page = data['edge_location_to_media'][
+        self._recent_media_has_next_page = self.data['edge_location_to_media'][
             'page_info']['has_next_page']
-        self._recent_media_cursor = data['edge_location_to_media']['page_info'][
+        self._recent_media_cursor = self.data['edge_location_to_media']['page_info'][
             'end_cursor']
 
-    def iterate_more_recent_media(self, reset=False, fetch_comments=False):
+    def iterate_more_recent_media(self, reset=False, fetch_data=False):
         if reset:
-            self._recent_media_has_next_page = data['edge_location_to_media'][
+            self._recent_media_has_next_page = self.data['edge_location_to_media'][
                 'page_info']['has_next_page']
-            self._recent_media_cursor = data['edge_location_to_media'][
+            self._recent_media_cursor = self.data['edge_location_to_media'][
                 'page_info']['end_cursor']
         while self._recent_media_has_next_page:
             params = {
@@ -58,6 +58,6 @@ class Location:
                 Media(
                     media_data['node'],
                     self.igql,
-                    fetch_comments=fetch_comments) for media_data in self.
+                    fetch_data=fetch_data) for media_data in self.
                 last_response['edge_location_to_media']['edges']
             ]
