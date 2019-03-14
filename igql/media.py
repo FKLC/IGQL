@@ -16,11 +16,11 @@ class Media:
             try:
                 self.comments = data['edge_media_to_comment']['edges']
 
-                self._comments_has_next_page = self.data['edge_media_to_comment'][
-                    'page_info']['has_next_page']
+                self._comments_has_next_page = self.data[
+                    'edge_media_to_comment']['page_info']['has_next_page']
                 self._comments_end_cursor = self.data['edge_media_to_comment'][
                     'page_info']['end_cursor']
-            except:
+            except KeyError:
                 self.comments = None
 
                 self._comments_has_next_page = False
@@ -36,56 +36,54 @@ class Media:
         if not self.comments:
             yield self._fetch_data()
         if reset:
-            self._comments_has_next_page = self.data[
-                'edge_media_to_comment']['page_info']['has_next_page']
-            self._comments_end_cursor = self.data['edge_media_to_comment'][
-                'page_info']['end_cursor']
+            self._comments_has_next_page = self.data['edge_media_to_comment']['page_info']['has_next_page']
+            self._comments_end_cursor = self.data['edge_media_to_comment']['page_info']['end_cursor']
+
         while self._comments_has_next_page:
             params = {
-                'query_hash':
-                self.igql._QUERY_HASHES['load_more_comments'],
-                'variables': json.dumps({
-                    'shortcode': self.shortcode,
-                    'first': 40,
-                    'after': self._comments_end_cursor
-                },
-                separators=(',', ':'))
+                'query_hash': self.igql._QUERY_HASHES['load_more_comments'],
+                'variables':
+                    json.dumps(
+                        {
+                            'shortcode': self.shortcode,
+                            'first': 40,
+                            'after': self._comments_end_cursor,
+                        },
+                        separators=(',', ':'),
+                    ),
             }
 
-            self.last_response = self.igql.gql_api.query.GET(
-                params=params).json()['data']['shortcode_media']
+            self.last_response = self.igql.gql_api.query.GET(params=params).json()['data']['shortcode_media']
 
-            self._comments_has_next_page = self.last_response[
-                'edge_media_to_comment']['page_info']['has_next_page']
-            self._comments_end_cursor = self.last_response[
-                'edge_media_to_comment']['page_info']['end_cursor']
+            self._comments_has_next_page = self.last_response['edge_media_to_comment']['page_info']['has_next_page']
+            self._comments_end_cursor = self.last_response['edge_media_to_comment']['page_info']['end_cursor']
 
             yield self.last_response['edge_media_to_comment']['edges']
 
-    def iterate_liked_by(self, reset=False):
+    def iterate_liked_by(self, reset=False, count=24):
         if reset:
             self._liked_by_has_next_page = True
             self._liked_by_end_cursor = None
+
         while self._liked_by_has_next_page:
             params = {
-                'query_hash':
-                self.igql._QUERY_HASHES['load_liked_by'],
-                'variables': json.dumps({
-                    'shortcode': self.shortcode,
-                    'include_reel': True,
-                    'first': 24,
-                },
-                separators=(',', ':')),
+                'query_hash': self.igql._QUERY_HASHES['load_liked_by'],
+                'variables':
+                    json.dumps(
+                        {
+                            'shortcode': self.shortcode,
+                            'include_reel': True,
+                            'first': count
+                        },
+                        separators=(',', ':'),
+                    ),
             }
             if self._liked_by_end_cursor:
                 params['after'] = self._liked_by_end_cursor
 
-            self.last_response = self.igql.gql_api.query.GET(
-                params=params).json()['data']['shortcode_media']
+            self.last_response = self.igql.gql_api.query.GET(params=params).json()['data']['shortcode_media']
 
-            self._liked_by_has_next_page = self.last_response['edge_liked_by'][
-                'page_info']['has_next_page']
-            self._liked_by_end_cursor = self.last_response['edge_liked_by'][
-                'page_info']['end_cursor']
+            self._liked_by_has_next_page = self.last_response['edge_liked_by']['page_info']['has_next_page']
+            self._liked_by_end_cursor = self.last_response['edge_liked_by']['page_info']['end_cursor']
 
             yield self.last_response['edge_liked_by']['edges']

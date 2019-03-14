@@ -27,12 +27,12 @@ class InstagramGraphQL:
 
     def __init__(self, rhx_gis='', sessionid='', proxies=[]):
         self.last_response = {}
-        proxy_configration = {
+        proxy_configuration = {
             'default': None,
             'proxies': proxies,
             'paths': {
                 '/query': 100
-            }
+            },
         }
         self.gql_api = AnyAPI(
             self._BASE_URL,
@@ -40,13 +40,14 @@ class InstagramGraphQL:
                 'user-agent': self._USER_AGENT,
                 'cookie': f'sessionid={sessionid}',
             },
-            proxy_configration=proxy_configration,
-            scoped_call=self._raise_rate_limit_connreset)
+            proxy_configuration=proxy_configuration,
+            scoped_call=self._raise_rate_limit_connreset,
+        )
         if not rhx_gis:
             rhx_gis = self._get_shared_data()['rhx_gis']
         self.rhx_gis = rhx_gis
 
-        self.gql_api._filter_headers.append(self._set_instagram_gis)
+        self.gql_api._filter_request.append(self._set_instagram_gis)
         self.gql_api._filter_response.append(self._raise_rate_limit_exceed)
         self.gql_api._filter_response.append(self._raise_media_not_found)
         self.gql_api._filter_response.append(self._raise_user_not_found)
@@ -56,94 +57,92 @@ class InstagramGraphQL:
     def get_media(self, shortcode):
         params = {
             'query_hash': self._QUERY_HASHES['get_media'],
-            'variables': json.dumps({
-                'shortcode': shortcode,
-                'child_comment_count': 0,
-                'fetch_comment_count': 40,
-                'parent_comment_count': 0,
-                'has_threaded_comments': False
-            },
-            separators=(',', ':'))
+            'variables':
+                json.dumps(
+                    {
+                        'shortcode': shortcode,
+                        'child_comment_count': 0,
+                        'fetch_comment_count': 40,
+                        'parent_comment_count': 0,
+                        'has_threaded_comments': False,
+                    },
+                    separators=(',', ':'),
+                ),
         }
 
-        self.last_response = self.gql_api.query.GET(
-            params=params).json()['data']['shortcode_media']
+        self.last_response = self.gql_api.query.GET(params=params).json()['data']['shortcode_media']
 
         return Media(self.last_response, self)
 
     def get_user(self, username, fetch_data=False):
-        self.last_response = self._get_shared_data(
-            username)['entry_data']['ProfilePage'][0]['graphql']['user']
+        self.last_response = self._get_shared_data(username)['entry_data']['ProfilePage'][0]['graphql']['user']
 
         return User(self.last_response, self, fetch_data=fetch_data)
 
     def get_hashtag(self, name, fetch_data=False):
-        self.last_response = self._get_shared_data(f'explore/tags/{name}/')[
-            'entry_data']['TagPage'][0]['graphql']['hashtag']
+        self.last_response = self._get_shared_data(f'explore/tags/{name}/')['entry_data']['TagPage'][0]['graphql'][
+            'hashtag']
 
-        return Hashtag(self.last_response, self, fetch_data=False)
+        return Hashtag(self.last_response, self, fetch_data=fetch_data)
 
     def get_location(self, location_id, fetch_data=False):
-        self.last_response = self._get_shared_data(
-            f'explore/locations/{location_id}/'
-        )['entry_data']['LocationsPage'][0]['graphql']['location']
+        self.last_response = self._get_shared_data(f'explore/locations/{location_id}/')['entry_data']['LocationsPage'][
+            0]['graphql']['location']
 
-        return Location(self.last_response, self, fetch_data=False)
+        return Location(self.last_response, self, fetch_data=fetch_data)
 
     def search(self, query):
         return self.gql_api.GET(
             url='https://www.instagram.com/web/search/topsearch/',
             params={
                 'query': query
-            }).json()
+            },
+        ).json()
 
     def _get_shared_data(self, path='instagram'):
         self.last_response = self.gql_api.GET(url=f'{self._IG_URL}/{path}')
-        self.last_response = self.last_response.text.split(
-            'window._sharedData = ')[1]
+        self.last_response = self.last_response.text.split('window._sharedData = ')[1]
         self.last_response = self.last_response.split(';</script>')[0]
         self.last_response = json.loads(self.last_response)
 
         return self.last_response
 
-    def _set_instagram_gis(self, params, headers, **kwargs):
-        if not params.get('variables'): return headers
-        return {
-            **headers, 'x-instagram-gis':
-            md5((self.rhx_gis + ':' +
-                 params['variables']).encode()).hexdigest()
-        }
+    def _set_instagram_gis(self, kwargs):
+        if 'variables' in kwargs['params']:
+            kwargs['headers'].update({
+                'x-instagram-gis': md5((self.rhx_gis + ':' + kwargs['params']['variables']).encode()).hexdigest(),
+            })
 
-    def _raise_rate_limit_exceed(self, response, **kwargs):
-        if response.status_code == 429 and response.json(
-        )['message'] == 'rate limited':
+        return kwargs
+
+    def _raise_rate_limit_exceed(self, *_, response):
+        if response.status_code == 429 and response.json()['message'] == 'rate limited':
             raise RateLimitExceed('Rate limit exceed!')
 
         return response
 
-    def _raise_media_not_found(self, response, params,  **kwargs):
-        if response.status_code == 200 and params.get(
-        'query_hash') == self._QUERY_HASHES['get_media'] and not response.json(
-        )['data'].get('shortcode_media'):
+    def _raise_media_not_found(self, kwargs, response):
+        if (response.status_code == 200
+                and kwargs['params'].get('query_hash') == self._QUERY_HASHES['get_media']
+                and not response.json()['data'].get('shortcode_media')):
             raise NotFound('Media not found!')
 
         return response
 
-    def _raise_user_not_found(self, response, url, path, **kwargs):
-        if response.status_code == 404 and path.split(
-                    '/')[1] not in self._FORBIDDEN_USERNAMES:
+    def _raise_user_not_found(self, kwargs, response):
+        if response.status_code == 404 and kwargs['path'].split('/')[1] not in self._FORBIDDEN_USERNAMES:
             raise NotFound('User not found!')
 
         return response
 
-    def _raise_hashtag_not_found(self, response, path, **kwargs):
-        if response.status_code == 404 and path.startswith('/explore/tags/'):
+    def _raise_hashtag_not_found(self, kwargs, response):
+        if response.status_code == 404 and kwargs['path'].startswith('/explore/tags/'):
             raise NotFound('Hashtag not found!')
 
         return response
 
-    def _raise_location_not_found(self, response, path, **kwargs):
-        if response.status_code == 404 and path.startswith('/explore/locations/'):
+    def _raise_location_not_found(self, kwargs, response):
+        if response.status_code == 404 and kwargs['path'].startswith('/explore/locations/'):
             raise NotFound('Location not found!')
 
         return response

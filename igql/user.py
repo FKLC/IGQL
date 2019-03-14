@@ -19,40 +19,38 @@ class User:
             for media_data in data['edge_owner_to_timeline_media']['edges']
         ]
 
-        self._timeline_has_next_page = self.data['edge_owner_to_timeline_media'][
-            'page_info']['has_next_page']
-        self._timeline_end_cursor = self.data['edge_owner_to_timeline_media'][
-            'page_info']['end_cursor']
+        self._timeline_has_next_page = self.data['edge_owner_to_timeline_media']['page_info']['has_next_page']
+        self._timeline_end_cursor = self.data['edge_owner_to_timeline_media']['page_info']['end_cursor']
 
-    def iterate_more_timeline_media(self, reset=False, fetch_data=False):
+    def iterate_more_timeline_media(self, reset=False, fetch_data=False, count=12):
         if reset:
-            self._timeline_has_next_page = self.data[
-                'edge_owner_to_timeline_media']['page_info'][
-                    'has_next_page']
-            self._timeline_end_cursor = self.data[
-                'edge_owner_to_timeline_media']['page_info']['end_cursor']
+            self._timeline_has_next_page = self.data['edge_owner_to_timeline_media']['page_info']['has_next_page']
+            self._timeline_end_cursor = self.data['edge_owner_to_timeline_media']['page_info']['end_cursor']
+
         while self._timeline_has_next_page:
             params = {
-                'query_hash':
-                self.igql._QUERY_HASHES['load_more_timeline_media'],
-                'variables': json.dumps({
-                    'id': self.user_id,
-                    'first': 12,
-                    'after': self._timeline_end_cursor,
-                },
-                separators=(',', ':'))
+                'query_hash': self.igql._QUERY_HASHES['load_more_timeline_media'],
+                'variables':
+                    json.dumps(
+                        {
+                            'id': self.user_id,
+                            'first': count,
+                            'after': self._timeline_end_cursor,
+                        },
+                        separators=(',', ':')
+                    ),
             }
 
             self.last_response = self.igql.gql_api.query.GET(
                 params=params).json()['data']['user']
 
             self._timeline_has_next_page = self.last_response[
-                'edge_owner_to_timeline_media']['page_info'][
-                    'has_next_page']
+                'edge_owner_to_timeline_media']['page_info']['has_next_page']
             self._timeline_end_cursor = self.last_response[
                 'edge_owner_to_timeline_media']['page_info']['end_cursor']
 
             yield [
-                Media(media_data['node'], self.igql, fetch_data=fetch_data) for media_data in
+                Media(media_data['node'], self.igql, fetch_data=fetch_data)
+                for media_data in
                 self.last_response['edge_owner_to_timeline_media']['edges']
             ]
