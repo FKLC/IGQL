@@ -61,9 +61,9 @@ class InstagramGraphQL:
                 json.dumps(
                     {
                         'shortcode': shortcode,
-                        'child_comment_count': 0,
+                        'child_comment_count': 3,
                         'fetch_comment_count': 40,
-                        'parent_comment_count': 0,
+                        'parent_comment_count': 24,
                         'has_threaded_comments': False,
                     },
                     separators=(',', ':'),

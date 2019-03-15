@@ -60,7 +60,7 @@ class Media:
 
             yield self.last_response['edge_media_to_comment']['edges']
 
-    def iterate_liked_by(self, reset=False, count=24):
+    def iterate_liked_by(self, reset=False, count=24, include_reel=True):
         if reset:
             self._liked_by_has_next_page = True
             self._liked_by_end_cursor = None
@@ -72,14 +72,14 @@ class Media:
                     json.dumps(
                         {
                             'shortcode': self.shortcode,
-                            'include_reel': True,
-                            'first': count
+                            'include_reel': include_reel,
+                            'first': count,
+                            **({'after': self._liked_by_end_cursor
+                            } if self._liked_by_end_cursor else {})
                         },
                         separators=(',', ':'),
                     ),
             }
-            if self._liked_by_end_cursor:
-                params['after'] = self._liked_by_end_cursor
 
             self.last_response = self.igql.gql_api.query.GET(params=params).json()['data']['shortcode_media']
 
