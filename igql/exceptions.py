@@ -4,3 +4,7 @@ class RateLimitExceed(Exception):
 
 class NotFound(Exception):
     pass
+
+
+class MaxRetries(Exception):
+    pass

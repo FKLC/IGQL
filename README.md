@@ -1,3 +1,6 @@
+# End of support
+According to this issue [#1]https://github.com/FKLC/IGQL/issues/1) [Instaloader](https://github.com/instaloader/instaloader) is already doing what this library does so why reinvent the wheel while it exists also I'm so sorry about wasting your time using this library instead of Instaloader it is much better than IGQL. @ogencoglu actually created issue about it but I think when I checked the source of [Instaloader](https://github.com/instaloader/instaloader) I accidentally typed something else instead of `graphql`. Also as you can guess I'm not going to document new API change but I'll upload new version to PyPI so if still want to use this library you should run `pip install igql==1.1.0` to use old documented version.
+
 # InstagramGraphQL Unofficial API
 Unofficial Instagram GraphQL API to collet data without authentication.
 
@@ -22,19 +25,15 @@ from igql import InstagramGraphQL
 igql_api = InstagramGraphQL()
 
 user = igql_api.get_user('instagram')
-for media in user.timeline: # This is entry_data not the all media
-    print(media.image_url)
-
-for media_list in user.iterate_more_timeline_media():
-    for media in media_list:
-        print(media.image_url)
+for media in user.timeline():
+    print(media)
 ```
 
 ## Installation
 Library is avaible on PyPi so just run
 
 ```
-pip install igql
+pip install igql==1.1.0
 ```
 
 

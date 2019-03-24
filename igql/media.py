@@ -1,89 +1,66 @@
-import json
+import igql
+
+from . import constants
+from .utils import get_value_deep_key, paginator
 
 
 class Media:
-    def __init__(self, data, igql, fetch_data=False):
-        self.igql = igql
+    def __init__(self, data, api):
+        self.api = api
         self.data = data
-        self.last_response = data
 
-        self.shortcode = data['shortcode']
-        self.display_url = data['display_url']
-        self.like_count = data['edge_media_preview_like']['count']
-        if fetch_data:
-            self._fetch_data()
-        else:
-            try:
-                self.comments = data['edge_media_to_comment']['edges']
+    def comments(self, variables={}):
+        data = get_value_deep_key(self.data, constants.LOAD_COMMENTS["keys"][1])
+        return paginator(
+            self.api,
+            data,
+            constants.LOAD_COMMENTS["keys"],
+            {
+                "query_hash": constants.LOAD_COMMENTS["hash"],
+                "variables": {
+                    **constants.LOAD_COMMENTS["variables"],
+                    "shortcode": data["shortcode"],
+                    **variables,
+                },
+            },
+        )
 
-                self._comments_has_next_page = self.data[
-                    'edge_media_to_comment']['page_info']['has_next_page']
-                self._comments_end_cursor = self.data['edge_media_to_comment'][
-                    'page_info']['end_cursor']
-            except KeyError:
-                self.comments = None
-
-                self._comments_has_next_page = False
-                self._comments_end_cursor = None
-        self._liked_by_has_next_page = True
-        self._liked_by_end_cursor = None
-
-    def _fetch_data(self):
-        media = self.igql.get_media(self.shortcode)
-        self.__dict__.update(media.__dict__)
-
-    def iterate_more_comments(self, reset=False):
-        if not self.comments:
-            yield self._fetch_data()
-        if reset:
-            self._comments_has_next_page = self.data['edge_media_to_comment']['page_info']['has_next_page']
-            self._comments_end_cursor = self.data['edge_media_to_comment']['page_info']['end_cursor']
-
-        while self._comments_has_next_page:
-            params = {
-                'query_hash': self.igql._QUERY_HASHES['load_more_comments'],
-                'variables':
-                    json.dumps(
-                        {
-                            'shortcode': self.shortcode,
-                            'first': 40,
-                            'after': self._comments_end_cursor,
-                        },
-                        separators=(',', ':'),
-                    ),
+    def __first_liked_by(self, variables):
+        return self.api.query.GET(
+            params={
+                "query_hash": constants.LOAD_LIKED_BY["hash"],
+                "variables": igql.InstagramGraphQL.dumps(
+                    {
+                        **constants.LOAD_LIKED_BY["variables"],
+                        "shortcode": get_value_deep_key(
+                            self.data, constants.LOAD_LIKED_BY["keys"][1]
+                        )["shortcode"],
+                        **variables,
+                    }
+                ),
             }
+        )
 
-            self.last_response = self.igql.gql_api.query.GET(params=params).json()['data']['shortcode_media']
+    def liked_by(self, variables={}):
+        get_value_deep_key(self.data, constants.LOAD_LIKED_BY["keys"][1])[
+            constants.LOAD_LIKED_BY["keys"][0]
+        ] = get_value_deep_key(
+            self.__first_liked_by(variables), constants.LOAD_LIKED_BY["keys"][1]
+        )[
+            constants.LOAD_LIKED_BY["keys"][0]
+        ]
 
-            self._comments_has_next_page = self.last_response['edge_media_to_comment']['page_info']['has_next_page']
-            self._comments_end_cursor = self.last_response['edge_media_to_comment']['page_info']['end_cursor']
-
-            yield self.last_response['edge_media_to_comment']['edges']
-
-    def iterate_liked_by(self, reset=False, count=24, include_reel=True):
-        if reset:
-            self._liked_by_has_next_page = True
-            self._liked_by_end_cursor = None
-
-        while self._liked_by_has_next_page:
-            params = {
-                'query_hash': self.igql._QUERY_HASHES['load_liked_by'],
-                'variables':
-                    json.dumps(
-                        {
-                            'shortcode': self.shortcode,
-                            'include_reel': include_reel,
-                            'first': count,
-                            **({'after': self._liked_by_end_cursor
-                            } if self._liked_by_end_cursor else {})
-                        },
-                        separators=(',', ':'),
-                    ),
-            }
-
-            self.last_response = self.igql.gql_api.query.GET(params=params).json()['data']['shortcode_media']
-
-            self._liked_by_has_next_page = self.last_response['edge_liked_by']['page_info']['has_next_page']
-            self._liked_by_end_cursor = self.last_response['edge_liked_by']['page_info']['end_cursor']
-
-            yield self.last_response['edge_liked_by']['edges']
+        data = get_value_deep_key(self.data, constants.LOAD_LIKED_BY["keys"][1])
+        return paginator(
+            self.api,
+            data,
+            constants.LOAD_LIKED_BY["keys"],
+            {
+                "query_hash": constants.LOAD_LIKED_BY["hash"],
+                "variables": {
+                    **constants.LOAD_LIKED_BY["variables"],
+                    "shortcode": data["shortcode"],
+                    **variables,
+                },
+            },
+        )

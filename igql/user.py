@@ -1,56 +1,26 @@
-import json
+import igql
 
-from .media import Media
+from . import constants
+from .utils import get_value_deep_key, paginator
 
 
 class User:
-    def __init__(self, data, igql, fetch_data=False):
-        self.igql = igql
+    def __init__(self, data, api):
+        self.api = api
         self.data = data
-        self.last_response = data
 
-        self.username = data['username']
-        self.user_id = data['id']
-        self.profile_pic = data['profile_pic_url_hd']
-        self.follower_count = data['edge_followed_by']['count']
-        self.following_count = data['edge_follow']['count']
-        self.timeline = [
-            Media(media_data['node'], self.igql, fetch_data=fetch_data)
-            for media_data in data['edge_owner_to_timeline_media']['edges']
-        ]
-
-        self._timeline_has_next_page = self.data['edge_owner_to_timeline_media']['page_info']['has_next_page']
-        self._timeline_end_cursor = self.data['edge_owner_to_timeline_media']['page_info']['end_cursor']
-
-    def iterate_more_timeline_media(self, reset=False, fetch_data=False, count=12):
-        if reset:
-            self._timeline_has_next_page = self.data['edge_owner_to_timeline_media']['page_info']['has_next_page']
-            self._timeline_end_cursor = self.data['edge_owner_to_timeline_media']['page_info']['end_cursor']
-
-        while self._timeline_has_next_page:
-            params = {
-                'query_hash': self.igql._QUERY_HASHES['load_more_timeline_media'],
-                'variables':
-                    json.dumps(
-                        {
-                            'id': self.user_id,
-                            'first': count,
-                            'after': self._timeline_end_cursor,
-                        },
-                        separators=(',', ':')
-                    ),
-            }
-
-            self.last_response = self.igql.gql_api.query.GET(
-                params=params).json()['data']['user']
-
-            self._timeline_has_next_page = self.last_response[
-                'edge_owner_to_timeline_media']['page_info']['has_next_page']
-            self._timeline_end_cursor = self.last_response[
-                'edge_owner_to_timeline_media']['page_info']['end_cursor']
-
-            yield [
-                Media(media_data['node'], self.igql, fetch_data=fetch_data)
-                for media_data in
-                self.last_response['edge_owner_to_timeline_media']['edges']
-            ]
+    def timeline(self, variables={}):
+        data = get_value_deep_key(self.data, constants.LOAD_TIMELINE["keys"][1])
+        return paginator(
+            self.api,
+            data,
+            constants.LOAD_TIMELINE["keys"],
+            {
+                "query_hash": constants.LOAD_TIMELINE["hash"],
+                "variables": {
+                    **constants.LOAD_TIMELINE["variables"],
+                    "id": data["id"],
+                    **variables,
+                },
+            },
+        )
