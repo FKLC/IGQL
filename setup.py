@@ -10,7 +10,7 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="igql",
-    version="1.1.1",
+    version="1.1.2",
     description="InstagramGraphQL Unofficial API",
     long_description=README,
     long_description_content_type="text/markdown",
