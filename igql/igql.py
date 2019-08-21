@@ -52,8 +52,6 @@ class InstagramGraphQL:
             self.__set_last_response,
         ]
 
-        if not rhx_gis:
-            rhx_gis = get_shared_data(self.api)["rhx_gis"]
         self.api._filter_request.append(
             lambda kwargs: set_instagram_gis(kwargs, rhx_gis)
         )
